@@ -72,16 +72,25 @@ class AnnonceController extends Controller
 
     public function show(Request $request, Annonce $annonce): JsonResponse
     {
+        $user = $request->user('sanctum');
+        $estProprietaire = $user && (int) $user->id === (int) $annonce->user_id;
+
+        if (!$estProprietaire && (!$user || !$user->isAdmin()) && $annonce->statut_publication !== 'active') {
+            return response()->json(['message' => 'Cette annonce est introuvable.'], 404);
+        }
+
         $annonce->load(['user', 'medias']);
 
-        $annonce->increment('vues_count');
+        if (!$estProprietaire) {
+            $annonce->increment('vues_count');
+        }
 
-        $user = $request->user('sanctum');
         $isFavori = $user ? $user->favoris()->where('annonce_id', $annonce->id)->exists() : false;
 
         return response()->json([
             'data' => ApiData::annonce($annonce, [
                 'est_favori' => $isFavori,
+                'include_contact' => (bool) $estProprietaire,
             ]),
         ]);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ParametrePlateforme;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -15,11 +16,19 @@ class KkiapayService
 
     public function __construct()
     {
-        // Lecture directe depuis .env via config/services.php
-        $this->publicKey  = (string) config('services.kkiapay.public_key', '');
-        $this->secretKey  = (string) config('services.kkiapay.secret_key', '');
-        $this->privateKey = (string) config('services.kkiapay.private_key', '');
-        $this->sandbox    = filter_var(config('services.kkiapay.sandbox', true), FILTER_VALIDATE_BOOLEAN);
+        // Les clés actives sont celles enregistrées par l'administrateur, avec repli sur .env.
+        try {
+            $settings = ParametrePlateforme::getSettings();
+            $this->publicKey  = $settings->getEffectiveKkiapayPublicKey();
+            $this->secretKey  = $settings->getEffectiveKkiapaySecretKey();
+            $this->privateKey = $settings->getEffectiveKkiapayPrivateKey();
+            $this->sandbox    = $settings->isEffectiveKkiapaySandbox();
+        } catch (\Throwable $e) {
+            $this->publicKey  = (string) config('services.kkiapay.public_key', '');
+            $this->secretKey  = (string) config('services.kkiapay.secret_key', '');
+            $this->privateKey = (string) config('services.kkiapay.private_key', '');
+            $this->sandbox    = filter_var(config('services.kkiapay.sandbox', true), FILTER_VALIDATE_BOOLEAN);
+        }
 
         $this->baseUrl = $this->sandbox
             ? 'https://api-sandbox.kkiapay.me'
@@ -51,10 +60,9 @@ class KkiapayService
 
                 Log::info("Kkiapay verify response (tentative {$attempt}/{$maxAttempts})", [
                     'transactionId' => $transactionId,
-                    'url'           => $url,
                     'sandbox'       => $this->sandbox,
                     'status'        => $response->status(),
-                    'body'          => $response->json(),
+                    'result_status' => $response->json('status'),
                 ]);
 
                 if ($response->successful()) {
@@ -77,7 +85,7 @@ class KkiapayService
                     Log::error('Kkiapay verification failed after max attempts', [
                         'transactionId' => $transactionId,
                         'httpStatus'    => $response->status(),
-                        'response'      => $response->json(),
+                        'resultStatus'  => $response->json('status'),
                     ]);
                 }
             } catch (\Exception $e) {

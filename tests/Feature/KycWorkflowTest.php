@@ -39,6 +39,7 @@ class KycWorkflowTest extends TestCase
             'niveau' => 'L3',
             'sexe' => 'F',
             'preferences' => ['Calme', 'Non-fumeur'],
+            'accepte_cgu' => true,
         ]);
 
         $response
@@ -79,6 +80,7 @@ class KycWorkflowTest extends TestCase
             'categorie' => 'Informatique',
             'adresse_physique' => 'Abomey-Calavi, carrefour IITA',
             'logo_boutique' => UploadedFile::fake()->image('logo.png'),
+            'accepte_cgu' => true,
         ]);
 
         $response

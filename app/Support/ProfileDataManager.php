@@ -23,7 +23,9 @@ class ProfileDataManager
                     'filiere' => $validated['filiere'],
                     'niveau' => $validated['niveau'],
                     'sexe' => $validated['sexe'],
-                    'preferences' => array_values($validated['preferences'] ?? []),
+                    'preferences' => array_key_exists('preferences', $validated)
+                        ? array_values($validated['preferences'] ?? [])
+                        : ($user->profilEtudiant?->preferences ?? []),
                     'budget_max' => $validated['budget_max'] ?? null,
                 ]
             ),

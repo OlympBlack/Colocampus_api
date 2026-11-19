@@ -15,6 +15,7 @@ class PubliciteBoutique extends Model
         'description',
         'categorie',
         'url_image_banniere',
+        'images',
         'lien_action',
         'quartier_cible',
         'vues_count',
@@ -25,6 +26,7 @@ class PubliciteBoutique extends Model
     {
         return [
             'prix' => 'integer',
+            'images' => 'array',
             'vues_count' => 'integer',
             'clics_count' => 'integer',
         ];

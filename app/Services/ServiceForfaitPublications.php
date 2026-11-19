@@ -30,29 +30,41 @@ class ServiceForfaitPublications
     }
 
     /**
-     * Enregistre l'achat et crédite le portefeuille (sans vérification Kkiapay).
+     * Crédite le portefeuille. Privé : aucun crédit ne peut être ajouté sans
+     * vérification effective d'un paiement auprès de Kkiapay.
      */
-    public function acheterForfait(User $user, ForfaitPublication $forfait, ?string $reference = null, ?string $methode = null)
+    private function acheterForfait(User $user, ForfaitPublication $forfait, string $transactionId, array $details)
     {
-        return DB::transaction(function () use ($user, $forfait, $reference, $methode) {
+        return DB::transaction(function () use ($user, $forfait, $transactionId, $details) {
+            $existing = AchatForfait::where('reference_transaction', $transactionId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                return $existing->load('forfait');
+            }
+
             $achat = AchatForfait::create([
                 'user_id'               => $user->id,
                 'forfait_id'            => $forfait->id,
                 'nombre_publications'   => $forfait->nombre_publications,
-                'montant'               => $forfait->prix,
+                'montant'               => $details['amount'] ?? $forfait->prix,
                 'statut_paiement'       => 'valide',
-                'methode_paiement'      => $methode,
-                'reference_transaction' => $reference,
+                'methode_paiement'      => 'kkiapay',
+                'reference_transaction' => $transactionId,
+                'devise'                => $details['currency'] ?? 'XOF',
+                'payeur'                => $this->extractPayer($details),
+                'verifie_le'            => now(),
             ]);
 
             $servicePortefeuille = new ServicePortefeuillePublications();
             $servicePortefeuille->ajouterCreditsAchetes($user, $forfait->nombre_publications, $achat->id);
 
-            Log::info('Achat forfait validé et crédits ajoutés', [
-                'user_id'     => $user->id,
-                'forfait_id'  => $forfait->id,
-                'credits'     => $forfait->nombre_publications,
-                'reference'   => $reference,
+            Log::info('Paiement Kkiapay vérifié et crédits ajoutés', [
+                'user_id' => $user->id,
+                'forfait_id' => $forfait->id,
+                'credits' => $forfait->nombre_publications,
+                'transaction' => $transactionId,
             ]);
 
             return $achat;
@@ -60,47 +72,99 @@ class ServiceForfaitPublications
     }
 
     /**
-     * Valider un achat via Kkiapay : vérifie la transaction puis crédite.
+     * Valider un achat : le serveur vérifie lui-même la transaction Kkiapay
+     * (montant exact, devise, identité du payeur, idempotence). Le client ne
+     * transmet qu'un identifiant de transaction, jamais un état de paiement.
      */
     public function validerAchatKkiapay(User $user, ForfaitPublication $forfait, string $transactionId)
     {
-        // 1. Idempotence : transaction déjà traitée ?
-        $achatExistant = AchatForfait::where('reference_transaction', $transactionId)
-            ->where('statut_paiement', 'valide')
-            ->first();
+        $transactionId = trim($transactionId);
+        if (!preg_match('/^[A-Za-z0-9_-]{6,100}$/', $transactionId)) {
+            throw new \InvalidArgumentException('Référence de transaction invalide.');
+        }
 
+        if (!$forfait->est_actif) {
+            throw new \InvalidArgumentException("Ce pack n'est plus disponible.");
+        }
+
+        $achatExistant = AchatForfait::where('reference_transaction', $transactionId)->first();
         if ($achatExistant) {
-            Log::info('Transaction déjà traitée (idempotence)', ['transaction_id' => $transactionId]);
+            if ($achatExistant->user_id !== $user->id || $achatExistant->forfait_id !== $forfait->id) {
+                Log::warning('Tentative de réutilisation d\'une transaction par un autre compte/pack', [
+                    'transaction' => $transactionId,
+                    'user_id' => $user->id,
+                ]);
+                throw new \InvalidArgumentException('Cette transaction a déjà été utilisée.');
+            }
             return $achatExistant->load('forfait');
         }
 
-        // 2. Vérification auprès de l'API Kkiapay
         $details = $this->kkiapay->verifyTransaction($transactionId);
 
         if (!$details || ($details['status'] ?? '') !== 'SUCCESS') {
-            Log::error('Échec vérification Kkiapay', [
-                'transaction_id' => $transactionId,
-                'details'        => $details,
-            ]);
-            throw new \Exception(
-                "La transaction Kkiapay n'a pas pu être vérifiée. " .
-                "Veuillez contacter le support avec votre référence de paiement : {$transactionId}"
-            );
+            Log::warning('Transaction Kkiapay non confirmée', ['transaction' => $transactionId]);
+            throw new \RuntimeException("La transaction n'a pas pu être confirmée. Vérifiez votre référence de paiement.");
         }
 
-        // 3. Vérification de sécurité : montant payé >= prix du pack
-        $montantPaye = isset($details['amount']) ? (int) $details['amount'] : 0;
-        if ($montantPaye < (int) $forfait->prix) {
-            Log::error('Montant insuffisant', [
+        $reportedId = (string) ($details['transactionId'] ?? $details['transaction_id'] ?? $transactionId);
+        if ($reportedId !== $transactionId) {
+            throw new \RuntimeException('La référence de transaction ne correspond pas au paiement.');
+        }
+
+        $montantPaye = (int) round((float) ($details['amount'] ?? 0));
+        $prix = (int) round((float) $forfait->prix);
+        if ($montantPaye !== $prix) {
+            Log::warning('Montant Kkiapay non conforme au pack', [
+                'transaction' => $transactionId,
                 'montant_paye' => $montantPaye,
-                'prix_forfait' => $forfait->prix,
+                'prix_forfait' => $prix,
             ]);
-            throw new \Exception(
-                "Le montant payé ({$montantPaye} FCFA) est inférieur au prix du pack ({$forfait->prix} FCFA)."
-            );
+            throw new \RuntimeException('Le montant payé ne correspond pas à ce pack.');
         }
 
-        // 4. Enregistrement et crédit du portefeuille
-        return $this->acheterForfait($user, $forfait, $transactionId, 'kkiapay');
+        $devise = strtoupper((string) ($details['currency'] ?? 'XOF'));
+        if (!in_array($devise, ['XOF', 'FCFA', ''], true)) {
+            throw new \RuntimeException('La devise du paiement est invalide.');
+        }
+
+        $payeur = $this->extractPayer($details);
+        if ($payeur !== null && !$this->payerMatchesUser($payeur, $user)) {
+            Log::warning('Payeur Kkiapay différent du compte connecté', [
+                'transaction' => $transactionId,
+                'user_id' => $user->id,
+            ]);
+            throw new \RuntimeException("Ce paiement n'est pas associé à votre compte.");
+        }
+
+        return $this->acheterForfait($user, $forfait, $transactionId, [
+            'amount' => $montantPaye,
+            'currency' => $devise,
+        ]);
+    }
+
+    private function extractPayer(array $details): ?string
+    {
+        $customer = $details['customer'] ?? null;
+        $source = is_array($customer) ? $customer : $details;
+
+        $value = $source['email'] ?? $source['phone'] ?? $source['telephone'] ?? $source['customer_email'] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    private function payerMatchesUser(string $payer, User $user): bool
+    {
+        $normalize = static fn (string $value): string => strtolower(preg_replace('/[^a-z0-9]/i', '', $value) ?? '');
+
+        $normalizedPayer = $normalize($payer);
+        $candidates = array_filter([$user->email, $user->telephone], static fn ($value) => is_string($value) && $value !== '');
+
+        foreach ($candidates as $candidate) {
+            if ($normalizedPayer === $normalize($candidate)) return true;
+            // Le numéro peut être enregistré au format international ou local (229...).
+            if (strlen($normalizedPayer) === 8 && str_ends_with($normalize((string) $candidate), $normalizedPayer)) return true;
+        }
+
+        return false;
     }
 }

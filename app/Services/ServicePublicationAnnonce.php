@@ -31,7 +31,7 @@ class ServicePublicationAnnonce
         return DB::transaction(function () use ($user, $donneesAnnonce) {
             // 1. Vérifier crédits
             if (!$this->servicePortefeuille->aDesCreditsDisponibles($user)) {
-                throw new \Exception("Quota de publication épuisé. Veuillez acheter des crédits.");
+                throw new \RuntimeException("Quota de publication épuisé. Veuillez acheter des crédits.");
             }
 
             // 2. Créer l'annonce

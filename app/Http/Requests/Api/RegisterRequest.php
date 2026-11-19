@@ -32,6 +32,7 @@ class RegisterRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
             'telephone' => ['required', 'string'],
             'role' => ['required', 'string', 'in:etudiant,demarcheur,boutique'],
+            'accepte_cgu' => ['required', 'accepted'],
             'photo_profil' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp'],
 
             'etablissement' => [Rule::requiredIf($role === 'etudiant'), 'string', 'max:255'],
@@ -66,6 +67,8 @@ class RegisterRequest extends FormRequest
             'name.required' => "Le nom de famille est obligatoire.",
             'prenoms.required' => "Les prénoms sont obligatoires.",
             'telephone.required' => "Le numéro de téléphone est obligatoire.",
+            'accepte_cgu.required' => "Vous devez accepter les conditions d'utilisation.",
+            'accepte_cgu.accepted' => "Vous devez accepter les conditions d'utilisation.",
             'universite.required' => "Veuillez choisir votre université.",
         ];
     }

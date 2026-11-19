@@ -14,17 +14,38 @@ class ManagedPubliciteController extends Controller
         $user = $request->user();
 
         if ($user->role !== 'boutique') {
-            return response()->json(['message' => 'Seules les boutiques peuvent publier une banniere.'], 403);
+            return response()->json(['message' => 'Seules les boutiques peuvent publier un article.'], 403);
         }
 
         $validated = $request->validated();
+
+        $storedPaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                if ($file && $file->isValid()) {
+                    $storedPaths[] = $file->store('publicites', 'public');
+                }
+            }
+        }
+
+        $thumbIndex = (int) ($validated['thumbnail_index'] ?? 0);
+        $thumbnailPath = null;
+
+        if (!empty($storedPaths)) {
+            $thumbnailPath = $storedPaths[$thumbIndex] ?? $storedPaths[0];
+        } elseif ($request->hasFile('banniere')) {
+            $stored = $request->file('banniere')->store('publicites', 'public');
+            $thumbnailPath = $stored;
+            $storedPaths = [$stored];
+        }
 
         $publicite = $user->publicitesBoutiques()->create([
             'titre_promo' => $validated['titre_promo'],
             'prix' => isset($validated['prix']) ? (int) $validated['prix'] : null,
             'description' => $validated['description'] ?? null,
             'categorie' => $validated['categorie'] ?? ($user->profilBoutique?->categorie ?? 'Équipements & Services'),
-            'url_image_banniere' => $request->file('banniere')->store('publicites', 'public'),
+            'url_image_banniere' => $thumbnailPath,
+            'images' => $storedPaths,
             'lien_action' => $validated['lien_action'] ?? ('#/boutiques'),
             'quartier_cible' => $validated['quartier_cible'] ?? null,
             'vues_count' => 0,

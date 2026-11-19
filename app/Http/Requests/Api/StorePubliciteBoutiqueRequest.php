@@ -21,7 +21,19 @@ class StorePubliciteBoutiqueRequest extends FormRequest
             'categorie' => ['nullable', 'string', 'max:100'],
             'lien_action' => ['nullable', 'string', 'max:1000'],
             'quartier_cible' => ['nullable', 'string', 'max:120', Rule::exists('quartiers', 'nom')],
-            'banniere' => ['required', 'image', 'mimes:jpg,jpeg,png,webp'],
+            'banniere' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp'],
+            'images' => ['nullable', 'array'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp'],
+            'thumbnail_index' => ['nullable', 'integer', 'min:0'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (!$this->hasFile('images') && !$this->hasFile('banniere')) {
+                $validator->errors()->add('images', 'Au moins une image de l\'article est requise.');
+            }
+        });
     }
 }

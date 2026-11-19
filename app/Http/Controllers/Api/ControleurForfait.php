@@ -33,17 +33,22 @@ class ControleurForfait extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $request->validate([
-            'forfait_id' => 'required|exists:forfaits_publications,id',
-            'transaction_id' => 'required|string',
+        $validated = $request->validate([
+            'forfait_id' => 'required|integer|exists:forfaits_publications,id',
+            'transaction_id' => 'required|string|max:100',
             'methode' => 'required|string|in:kkiapay',
+        ], [
+            'forfait_id.exists' => "Ce pack n'existe pas.",
+            'transaction_id.required' => 'La référence de paiement est obligatoire.',
         ]);
 
-        $forfait = ForfaitPublication::findOrFail($request->forfait_id);
+        $forfait = ForfaitPublication::where('id', $validated['forfait_id'])
+            ->where('est_actif', true)
+            ->firstOrFail();
         $user = $request->user();
 
         try {
-            $achat = $this->serviceForfait->validerAchatKkiapay($user, $forfait, $request->transaction_id);
+            $achat = $this->serviceForfait->validerAchatKkiapay($user, $forfait, $validated['transaction_id']);
 
             $servicePortefeuille = new \App\Services\ServicePortefeuillePublications();
             $resume = $servicePortefeuille->obtenirResumePortefeuille($user);
@@ -54,11 +59,22 @@ class ControleurForfait extends Controller
                 'achat' => $achat,
                 'portefeuille' => $resume,
             ]);
-        } catch (\Exception $e) {
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
-            ], 400);
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Erreur lors de la validation d\'un paiement', [
+                'user_id' => $user->id,
+                'forfait_id' => $forfait->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'La validation du paiement a échoué. Veuillez réessayer ou contacter le support avec votre référence de paiement.',
+            ], 502);
         }
     }
 }

@@ -109,6 +109,33 @@ class ApiData
         };
     }
 
+    /**
+     * Profil diffusé publiquement : aucune donnée d'identification fiscale ou
+     * de contact n'est exposee ici.
+     */
+    public static function publicProfile(User $user): array
+    {
+        return match ($user->role) {
+            'etudiant' => [
+                'etablissement' => $user->profilEtudiant?->etablissement,
+                'universite_id' => $user->profilEtudiant?->universite_id,
+                'universite' => self::universiteSafe($user->profilEtudiant?->universite),
+                'filiere' => $user->profilEtudiant?->filiere,
+                'niveau' => $user->profilEtudiant?->niveau,
+                'sexe' => $user->profilEtudiant?->sexe,
+            ],
+            'demarcheur' => [
+                'zone_activite' => $user->profilDemarcheur?->zone_activite,
+            ],
+            'boutique' => [
+                'nom_boutique' => $user->profilBoutique?->nom_boutique,
+                'categorie' => $user->profilBoutique?->categorie,
+                'logo_url' => self::fileUrl($user->profilBoutique?->logo_url),
+            ],
+            default => [],
+        };
+    }
+
     public static function annonce(Annonce $annonce, array $extra = []): array
     {
         $annonce->loadMissing(['user.profilEtudiant.universite', 'user.profilDemarcheur', 'user.profilBoutique', 'medias', 'universite']);
@@ -131,6 +158,24 @@ class ApiData
             ]);
         }
 
+        $includeContact = !empty($extra['include_contact']);
+        $author = $annonce->user;
+
+        $authorData = [
+            'id' => $author?->id,
+            'name' => $author?->name,
+            'prenoms' => $author?->prenoms,
+            'role' => $author?->role,
+            'photo_profil' => self::fileUrl($author?->photo_profil),
+            'statut_verification' => $author?->statut_verification,
+            'profil' => $author ? self::publicProfile($author) : null,
+        ];
+
+        if ($includeContact) {
+            $authorData['telephone'] = $author?->telephone;
+            $authorData['profil'] = $author ? array_merge(self::publicProfile($author), self::profile($author)) : null;
+        }
+
         return array_merge([
             'id' => $annonce->id,
             'titre' => $annonce->titre,
@@ -150,16 +195,9 @@ class ApiData
             'statut_publication' => $annonce->statut_publication ?? 'active',
             'vues_count' => (int) ($annonce->vues_count ?? 0),
             'created_at' => $annonce->created_at?->toIso8601String(),
-            'user' => [
-                'id' => $annonce->user?->id,
-                'name' => $annonce->user?->name,
-                'prenoms' => $annonce->user?->prenoms,
-                'role' => $annonce->user?->role,
-                'telephone' => $annonce->user?->telephone,
-                'photo_profil' => self::fileUrl($annonce->user?->photo_profil),
-                'statut_verification' => $annonce->user?->statut_verification,
-                'profil' => $annonce->user ? self::profile($annonce->user) : null,
-            ],
+            'updated_at' => $annonce->updated_at?->toIso8601String(),
+            'contact_disponible' => (bool) ($author?->telephone),
+            'user' => $authorData,
             'medias' => $medias->all(),
         ], $extra);
     }
@@ -322,6 +360,18 @@ class ApiData
     {
         $publicite->loadMissing('user.profilBoutique');
 
+        $rawImages = $publicite->images;
+        if (!is_array($rawImages) && !empty($rawImages)) {
+            $rawImages = json_decode($rawImages, true) ?: [$rawImages];
+        }
+        $formattedImages = [];
+        if (!empty($rawImages) && is_array($rawImages)) {
+            $formattedImages = array_values(array_filter(array_map(fn ($path) => self::fileUrl($path), $rawImages)));
+        }
+        if (empty($formattedImages) && $publicite->url_image_banniere) {
+            $formattedImages = [self::fileUrl($publicite->url_image_banniere)];
+        }
+
         return [
             'id' => $publicite->id,
             'titre_promo' => $publicite->titre_promo,
@@ -330,6 +380,7 @@ class ApiData
             'description' => $publicite->description,
             'categorie' => $publicite->categorie ?: ($publicite->user?->profilBoutique?->categorie ?: 'Équipements & Services'),
             'url_image_banniere' => self::fileUrl($publicite->url_image_banniere),
+            'images' => $formattedImages,
             'lien_action' => $publicite->lien_action,
             'quartier_cible' => $publicite->quartier_cible,
             'vues_count' => (int) $publicite->vues_count,

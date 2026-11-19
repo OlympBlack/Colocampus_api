@@ -35,6 +35,7 @@ Route::get('/quartiers', [\App\Http\Controllers\Api\QuartierController::class, '
 Route::get('/publicites-boutiques', [PubliciteBoutiqueController::class, 'index']);
 Route::get('/publicites-boutiques/{publicite}', [PubliciteBoutiqueController::class, 'show']);
 Route::post('/publicites-boutiques/{publicite}/click', [PubliciteBoutiqueController::class, 'click']);
+Route::get('/forfaits-publications', [ControleurForfait::class, 'index']);
 
 // Collections publiques
 Route::get('/collections', [\App\Http\Controllers\Api\CollectionImmobiliereController::class, 'index']);
@@ -45,6 +46,8 @@ Route::post('/register', [RegisterController::class, 'register'])->middleware('t
 Route::post('/verify-otp', [OtpController::class, 'verify'])->middleware('throttle:8,1')->name('api.verify-otp');
 Route::post('/resend-otp', [OtpController::class, 'resend'])->middleware('throttle:3,1')->name('api.resend-otp');
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:8,1')->name('api.login');
+Route::post('/forgot-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'requestReset'])->middleware('throttle:3,1');
+Route::post('/reset-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'reset'])->middleware('throttle:8,1');
 Route::get('/auth/validation/{id}/{hash}', [RegisterController::class, 'validateAccountFromEmail'])->name('api.auth.validation');
 Route::get('/auth/validate-account/{id}/{hash}', [RegisterController::class, 'validateAccountFromEmail'])->name('api.auth.validate-account');
 
@@ -56,6 +59,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/me/password', [ProfileController::class, 'updatePassword']);
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::post('/kyc/documents', [KycController::class, 'store']);
+    Route::post('/annonces/{annonce}/contact', [\App\Http\Controllers\Api\AnnonceContactController::class, 'unlock'])
+        ->middleware('throttle:10,1');
     Route::post('/annonces/{annonce}/favori', [FavoriteController::class, 'store']);
     Route::delete('/annonces/{annonce}/favori', [FavoriteController::class, 'destroy']);
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -79,7 +84,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('verified.user')->group(function () {
         Route::post('/annonces', [ControleurAnnonce::class, 'store']);
-        Route::get('/forfaits-publications', [ControleurForfait::class, 'index']);
         Route::post('/achats-forfaits', [ControleurForfait::class, 'store']);
         Route::get('/portefeuille-publications', [ControleurPortefeuille::class, 'show']);
 

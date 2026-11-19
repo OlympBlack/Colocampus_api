@@ -19,7 +19,14 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    // Origins autorisées : jamais de joker sur une API manipulant des comptes et paiements.
+    'allowed_origins' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env(
+            'CORS_ALLOWED_ORIGINS',
+            'https://colocampus.bj,https://www.colocampus.bj,http://colocampus.bj,http://www.colocampus.bj,https://coletubenin.lavoixdabouloussi.org,http://localhost:5173,http://127.0.0.1:5173'
+        ))
+    ))),
 
     'allowed_origins_patterns' => [],
 

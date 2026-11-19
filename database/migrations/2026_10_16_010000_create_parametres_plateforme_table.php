@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('campus_localisation')->default('Campus UAC & environs • Bénin');
             $table->string('telephone')->default('+229 01 54 47 00 02');
             $table->string('whatsapp')->default('+229 01 54 47 00 02');
-            $table->string('email_contact')->default('contact@colcampus.com');
-            $table->string('email_support')->default('support@colcampus.com');
+            $table->string('email_contact')->default('contact@colocampus.bj');
+            $table->string('email_support')->default('contact@colocampus.bj');
             $table->string('signature_auteur')->default('GBASSI Jules-christ');
             $table->string('signature_url')->default('https://juleschrist-portfolio.vercel.app/');
             $table->string('signature_texte')->default('Conçu & développé par');
@@ -39,8 +39,8 @@ return new class extends Migration
             'campus_localisation' => 'Campus UAC & environs • Bénin',
             'telephone' => '+229 01 54 47 00 02',
             'whatsapp' => '+229 01 54 47 00 02',
-            'email_contact' => 'contact@colcampus.com',
-            'email_support' => 'support@colcampus.com',
+            'email_contact' => 'contact@colocampus.bj',
+            'email_support' => 'contact@colocampus.bj',
             'signature_auteur' => 'GBASSI Jules-christ',
             'signature_url' => 'https://juleschrist-portfolio.vercel.app/',
             'signature_texte' => 'Conçu & développé par',

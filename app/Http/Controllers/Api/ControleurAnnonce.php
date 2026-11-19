@@ -61,10 +61,19 @@ class ControleurAnnonce extends ManagedAnnonceController
                 'data' => ApiData::annonce($annonce->fresh(['user', 'medias'])),
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (\RuntimeException|\InvalidArgumentException $e) {
             return response()->json([
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 403);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Publication d\'annonce impossible', [
+                'user_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => "L'annonce n'a pas pu être publiée. Veuillez réessayer.",
+            ], 500);
         }
     }
 }
