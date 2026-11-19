@@ -68,7 +68,7 @@ class RegisterController extends Controller
      */
     public function validateAccountFromEmail(Request $request, $id, $hash)
     {
-        $loginUrl = config('app.frontend_url', 'https://coletubenin.lavoixdabouloussi.org') . '/#/connexion';
+        $loginUrl = config('app.frontend_url', 'https://colocampus.bj') . '/#/connexion';
 
         $user = User::find($id);
 

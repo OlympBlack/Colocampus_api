@@ -47,7 +47,7 @@ class TestMailCommand extends Command
         $this->info("Tentative d'envoi d'un email de test vers : {$recipient} ...");
 
         try {
-            $validationUrl = config('app.frontend_url', 'https://coletubenin.lavoixdabouloussi.org') . '/#/connexion?validated=1';
+            $validationUrl = config('app.frontend_url', 'https://colocampus.bj') . '/#/connexion?validated=1';
             $otp = (string) random_int(100000, 999999);
 
             Mail::to($recipient)->send(new SendOtpMail($otp, $validationUrl, 'Testeur ColoCampus'));

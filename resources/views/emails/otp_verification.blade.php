@@ -15,10 +15,10 @@
             @php
                 $logoSrc = isset($message) && file_exists(public_path('images/colocampus_logo_white.png'))
                     ? $message->embed(public_path('images/colocampus_logo_white.png'))
-                    : rtrim(config('app.frontend_url', 'https://coletubenin.lavoixdabouloussi.org'), '/') . '/assets/images/colocampus_logo_white.png';
+                    : rtrim(config('app.frontend_url', 'https://colocampus.bj'), '/') . '/assets/images/colocampus_logo_white.png';
             @endphp
             <div style="background-color: #0b1f13; padding: 2rem 2.5rem; text-align: center;">
-                <a href="{{ config('app.frontend_url', 'https://coletubenin.lavoixdabouloussi.org') }}" target="_blank" style="text-decoration: none; display: inline-block;">
+                <a href="{{ config('app.frontend_url', 'https://colocampus.bj') }}" target="_blank" style="text-decoration: none; display: inline-block;">
                     <img src="{{ $logoSrc }}"
                          alt="ColoCampus"
                          height="40"

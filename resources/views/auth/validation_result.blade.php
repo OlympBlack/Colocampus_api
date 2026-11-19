@@ -93,8 +93,8 @@
 <body>
     <div class="card">
         <div style="text-align: center; margin-bottom: 20px;">
-            <a href="{{ config('app.frontend_url', 'https://coletubenin.lavoixdabouloussi.org') }}">
-                <img src="{{ rtrim(config('app.frontend_url', 'https://coletubenin.lavoixdabouloussi.org'), '/') }}/assets/images/colocampus_logo_dark.png" alt="ColoCampus" style="height: 36px; max-width: 190px; width: auto; display: inline-block; border: 0;" />
+            <a href="{{ config('app.frontend_url', 'https://colocampus.bj') }}">
+                <img src="{{ rtrim(config('app.frontend_url', 'https://colocampus.bj'), '/') }}/assets/images/colocampus_logo_dark.png" alt="ColoCampus" style="height: 36px; max-width: 190px; width: auto; display: inline-block; border: 0;" />
             </a>
         </div>
         @if($success)
@@ -119,7 +119,7 @@
             <a href="{{ $loginUrl }}" class="btn">Aller à la page de connexion</a>
         @endif
         <div>
-            <a href="{{ config('app.frontend_url', 'https://coletubenin.lavoixdabouloussi.org') }}" class="secondary-link">← Retourner à l'accueil ColoCampus</a>
+            <a href="{{ config('app.frontend_url', 'https://colocampus.bj') }}" class="secondary-link">← Retourner à l'accueil ColoCampus</a>
         </div>
     </div>
 </body>
