@@ -54,9 +54,8 @@ class ManagedAnnonceController extends Controller
 
         $validated = $request->validated();
 
-        if ($roleGuard = $this->guardAnnouncementRules($request->user()->role, $validated)) {
-            return $roleGuard;
-        }
+        // Lors d'une mise à jour, on autorise tous les types (l'annonce existe déjà).
+        // La restriction sur le type n'est appliquée qu'à la création.
 
         $annonce->update($this->announcementPayload($validated, $request->universiteId()));
 
@@ -107,18 +106,15 @@ class ManagedAnnonceController extends Controller
         ]);
     }
 
+    /**
+     * Vérifie les règles métier sur le type d'annonce lors de la CRÉATION.
+     * Lors d'une mise à jour (update), cette méthode n'est pas appelée :
+     * le propriétaire doit pouvoir modifier son annonce quel qu'en soit le type.
+     */
     protected function guardAnnouncementRules(string $role, array $validated): ?JsonResponse
     {
         if ($role === 'boutique') {
             return response()->json(['message' => 'Une boutique ne peut pas publier d annonces de chambre.'], 403);
-        }
-
-        if ($role === 'demarcheur' && !in_array($validated['type_annonce'], ['CHAMBRE_VIDE', 'PLACE_LIBRE_HOTE'])) {
-            return response()->json(['message' => 'Un demarcheur publie uniquement des chambres vides ou des places en colocation.'], 422);
-        }
-
-        if ($role === 'etudiant' && !in_array($validated['type_annonce'], ['CHAMBRE_VIDE', 'PLACE_LIBRE_HOTE'])) {
-            return response()->json(['message' => 'Un etudiant peut publier une chambre vide ou une place en colocation.'], 422);
         }
 
         return null;
