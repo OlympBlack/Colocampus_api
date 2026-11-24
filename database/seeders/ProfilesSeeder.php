@@ -142,12 +142,12 @@ class ProfilesSeeder extends Seeder
         }
 
         User::updateOrCreate(
-            ['email' => 'admin@colcampus.bj'],
+            ['email' => 'admin@colocampus.bj'],
             [
                 'name' => 'Admin',
-                'prenoms' => 'Plateforme',
-                'password' => Hash::make('password123'),
-                'telephone' => '+22997000000',
+                'prenoms' => 'ColoCampus',
+                'password' => Hash::make('colocampus@1234'),
+                'telephone' => '+22954470002',
                 'role' => 'admin',
                 'photo_profil' => 'https://ui-avatars.com/api/?name=Admin+Plateforme&background=111827&color=fff',
                 'is_verified' => true,
