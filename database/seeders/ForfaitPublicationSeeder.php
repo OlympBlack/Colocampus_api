@@ -13,7 +13,7 @@ class ForfaitPublicationSeeder extends Seeder
             ['titre' => 'Pack Standard'],
             [
                 'description' => 'Idéal pour débuter votre activité.',
-                'prix' => 5000,
+                'prix' => 1500,
                 'nombre_publications' => 5,
                 'est_actif' => true,
                 'est_populaire' => false,
@@ -25,8 +25,8 @@ class ForfaitPublicationSeeder extends Seeder
             ['titre' => 'Pack Pro'],
             [
                 'description' => 'Notre pack le plus populaire pour les agents actifs.',
-                'prix' => 12000,
-                'nombre_publications' => 15,
+                'prix' => 2500,
+                'nombre_publications' => 10,
                 'est_actif' => true,
                 'est_populaire' => true,
                 'ordre_affichage' => 2,
@@ -37,8 +37,8 @@ class ForfaitPublicationSeeder extends Seeder
             ['titre' => 'Pack Premium'],
             [
                 'description' => 'Pour une visibilité maximale et un gros volume.',
-                'prix' => 25000,
-                'nombre_publications' => 40,
+                'prix' => 5000,
+                'nombre_publications' => 25,
                 'est_actif' => true,
                 'est_populaire' => false,
                 'ordre_affichage' => 3,
