@@ -55,3 +55,4 @@ return new class extends Migration
             ->update(['est_populaire' => true, 'updated_at' => now()]);
     }
 };
+

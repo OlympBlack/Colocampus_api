@@ -23,6 +23,8 @@ class Annonce extends Model
         'statut_disponibilite',
         'statut_publication',
         'vues_count',
+        'est_boostee',
+        'boostee_jusqu_a',
     ];
 
     protected function casts(): array
@@ -32,7 +34,19 @@ class Annonce extends Model
             'caution' => 'decimal:2',
             'nombre_places' => 'integer',
             'vues_count' => 'integer',
+            'est_boostee' => 'boolean',
+            'boostee_jusqu_a' => 'datetime',
         ];
+    }
+
+    public function isCurrentlyBoosted(): bool
+    {
+        return (bool) ($this->boostee_jusqu_a && $this->boostee_jusqu_a->isFuture());
+    }
+
+    public function boosts()
+    {
+        return $this->hasMany(BoostAnnonce::class);
     }
 
     public function user()

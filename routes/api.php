@@ -36,6 +36,7 @@ Route::get('/publicites-boutiques', [PubliciteBoutiqueController::class, 'index'
 Route::get('/publicites-boutiques/{publicite}', [PubliciteBoutiqueController::class, 'show']);
 Route::post('/publicites-boutiques/{publicite}/click', [PubliciteBoutiqueController::class, 'click']);
 Route::get('/forfaits-publications', [ControleurForfait::class, 'index']);
+Route::get('/boost-packs', [\App\Http\Controllers\Api\AnnonceBoostController::class, 'packs']);
 
 // Collections publiques
 Route::get('/collections', [\App\Http\Controllers\Api\CollectionImmobiliereController::class, 'index']);
@@ -92,6 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/annonces/{annonce}', [ManagedAnnonceController::class, 'update']);
         Route::delete('/annonces/{annonce}', [ManagedAnnonceController::class, 'destroy']);
         Route::patch('/annonces/{annonce}/status', [ManagedAnnonceController::class, 'updateStatus']);
+        Route::post('/annonces/{annonce}/boost', [\App\Http\Controllers\Api\AnnonceBoostController::class, 'boost']);
         Route::post('/publicites-boutiques', [ManagedPubliciteController::class, 'store']);
     });
 

@@ -194,6 +194,8 @@ class ApiData
             'statut_disponibilite' => $annonce->statut_disponibilite,
             'statut_publication' => $annonce->statut_publication ?? 'active',
             'vues_count' => (int) ($annonce->vues_count ?? 0),
+            'est_boostee' => (bool) ($annonce->boostee_jusqu_a && $annonce->boostee_jusqu_a->isFuture()),
+            'boostee_jusqu_a' => $annonce->boostee_jusqu_a?->toIso8601String(),
             'created_at' => $annonce->created_at?->toIso8601String(),
             'updated_at' => $annonce->updated_at?->toIso8601String(),
             'contact_disponible' => (bool) ($author?->telephone),

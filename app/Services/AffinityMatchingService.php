@@ -18,23 +18,45 @@ class AffinityMatchingService
      */
     public function rankAnnonces(EloquentCollection $annonces, ?User $searcher): Collection
     {
+        $now = now();
+        $isBoosted = fn (Annonce $a) => (bool) ($a->boostee_jusqu_a && $a->boostee_jusqu_a->isAfter($now));
+
         if (!$searcher || $searcher->role !== 'etudiant') {
-            // For guests or non-students, sort by latest
-            return $annonces->sortByDesc('created_at')->values();
+            // Pour les visiteurs ou non-étudiants : annonces boostées en tête, puis plus récentes
+            return $annonces->sort(function ($a, $b) use ($isBoosted) {
+                $aBoost = $isBoosted($a);
+                $bBoost = $isBoosted($b);
+                if ($aBoost !== $bBoost) {
+                    return $bBoost <=> $aBoost;
+                }
+                return $b->created_at <=> $a->created_at;
+            })->values();
         }
 
         $searcher->loadMissing('profilEtudiant');
         $searcherProfile = $searcher->profilEtudiant;
 
         if (!$searcherProfile) {
-            return $annonces->sortByDesc('created_at')->values();
+            return $annonces->sort(function ($a, $b) use ($isBoosted) {
+                $aBoost = $isBoosted($a);
+                $bBoost = $isBoosted($b);
+                if ($aBoost !== $bBoost) {
+                    return $bBoost <=> $aBoost;
+                }
+                return $b->created_at <=> $a->created_at;
+            })->values();
         }
 
         return $annonces->map(function (Annonce $annonce) use ($searcher, $searcherProfile) {
             $score = $this->calculateAffinityScore($annonce, $searcher, $searcherProfile);
             $annonce->affinity_score = $score;
             return $annonce;
-        })->sort(function ($a, $b) {
+        })->sort(function ($a, $b) use ($isBoosted) {
+            $aBoost = $isBoosted($a);
+            $bBoost = $isBoosted($b);
+            if ($aBoost !== $bBoost) {
+                return $bBoost <=> $aBoost; // Les annonces boostées apparaissent toujours en priorité
+            }
             if ($a->affinity_score === $b->affinity_score) {
                 return $b->created_at <=> $a->created_at; // Fallback to newest
             }
