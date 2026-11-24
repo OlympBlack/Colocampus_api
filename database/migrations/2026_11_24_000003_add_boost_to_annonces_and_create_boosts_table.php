@@ -17,22 +17,24 @@ return new class extends Migration
             }
         });
 
-        Schema::create('boosts_annonces', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('annonce_id')->constrained('annonces')->onDelete('cascade');
-            $table->string('pack_type', 30); // 'boost_3j', 'boost_7j'
-            $table->unsignedInteger('duree_jours'); // 3 ou 7
-            $table->unsignedInteger('montant'); // 200 ou 500
-            $table->string('reference_transaction', 100)->unique();
-            $table->string('statut_paiement', 30)->default('valide');
-            $table->string('methode_paiement', 30)->default('kkiapay');
-            $table->string('devise', 10)->default('XOF');
-            $table->string('payeur', 150)->nullable();
-            $table->timestamp('date_debut');
-            $table->timestamp('date_fin');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('boosts_annonces')) {
+            Schema::create('boosts_annonces', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+                $table->foreignId('annonce_id')->constrained('annonces')->onDelete('cascade');
+                $table->string('pack_type', 30); // 'boost_3j', 'boost_7j'
+                $table->unsignedInteger('duree_jours'); // 3 ou 7
+                $table->unsignedInteger('montant'); // 200 ou 500
+                $table->string('reference_transaction', 100)->unique();
+                $table->string('statut_paiement', 30)->default('valide');
+                $table->string('methode_paiement', 30)->default('kkiapay');
+                $table->string('devise', 10)->default('XOF');
+                $table->string('payeur', 150)->nullable();
+                $table->dateTime('date_debut')->nullable();
+                $table->dateTime('date_fin')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
