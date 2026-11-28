@@ -52,12 +52,7 @@ class DashboardController extends Controller
         $conversations = $uniqueConversations;
 
         $completionPct = ProfileDataManager::completionPercentage($user);
-        $isVerified = (bool) (
-            $user->is_verified ||
-            $user->statut_verification === 'valide' ||
-            $user->statut_verification === 'verifie' ||
-            ($user->is_valide ?? false)
-        );
+        $isVerified = $user->isKycValidated();
         $profileCompleted = (bool) (
             $user->profile_completed ||
             $completionPct >= 100 ||

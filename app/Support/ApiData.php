@@ -37,12 +37,7 @@ class ApiData
         $user->loadMissing(['profilEtudiant', 'profilDemarcheur', 'profilBoutique', 'documentsIdentite']);
 
         $completionPct = ProfileDataManager::completionPercentage($user);
-        $isVerified = (bool) (
-            $user->is_verified ||
-            $user->statut_verification === 'valide' ||
-            $user->statut_verification === 'verifie' ||
-            ($user->is_valide ?? false)
-        );
+        $isVerified = $user->isKycValidated();
         $profileCompleted = (bool) (
             $user->profile_completed ||
             $completionPct >= 100 ||
@@ -59,7 +54,7 @@ class ApiData
             'role' => $user->role,
             'photo_profil' => self::fileUrl($user->photo_profil),
             'is_verified' => $isVerified,
-            'is_valide' => (bool) (($user->is_valide ?? false) || $isVerified),
+            'is_valide' => (bool) ($user->is_valide ?? false),
             'profile_completed' => $profileCompleted,
             'profile_completion_percentage' => $completionPct,
             'credits_restants' => (int) ($user->portefeuillePublication?->credits_restants ?? 0),
@@ -230,7 +225,7 @@ class ApiData
                 'prenoms' => $student?->prenoms,
                 'photo_profil' => self::fileUrl($student?->photo_profil),
                 'statut_verification' => $student?->statut_verification,
-                'is_verified' => (bool) ($student?->is_verified || $student?->statut_verification === 'valide'),
+                'is_verified' => (bool) ($student && $student->isKycValidated()),
                 'etablissement' => $student?->profilEtudiant?->etablissement,
                 'filiere' => $student?->profilEtudiant?->filiere,
                 'niveau' => $student?->profilEtudiant?->niveau,
@@ -395,7 +390,7 @@ class ApiData
                 'logo_url' => self::fileUrl($publicite->user?->profilBoutique?->logo_url) ?: self::fileUrl($publicite->user?->photo_profil),
                 'telephone' => $publicite->user?->telephone,
                 'adresse_physique' => $publicite->user?->profilBoutique?->adresse_physique,
-                'is_verified' => (bool) ($publicite->user?->is_verified || $publicite->user?->statut_verification === 'verifie'),
+                'is_verified' => (bool) ($publicite->user && $publicite->user->isKycValidated()),
             ],
         ];
     }
